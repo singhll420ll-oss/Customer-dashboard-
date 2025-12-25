@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+
+{% block title %}BiteBuddy - Login/Register{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <!-- Login Form -->
+    <div class="auth-card active" id="loginCard">
+        <div class="auth-header">
+            <h1><i class="fas fa-utensils"></i> BiteBuddy</h1>
+            <p class="text-gray">Login to your account</p>
+        </div>
+        
+        <form id="loginForm" class="auth-form">
+            <div class="input-group">
+                <i class="fas fa-phone"></i>
+                <input type="tel" id="loginMobile" class="input-field" placeholder="Mobile Number" required>
+            </div>
+            
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="loginPassword" class="input-field" placeholder="Password" required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-full">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+        </form>
+        
+        <div class="auth-footer">
+            <p class="text-gray">New to BiteBuddy? <a href="#" id="showRegister" class="text-primary">Register</a></p>
+        </div>
+    </div>
+    
+    <!-- Register Form -->
+    <div class="auth-card" id="registerCard">
+        <div class="auth-header">
+            <h1><i class="fas fa-utensils"></i> BiteBuddy</h1>
+            <p class="text-gray">Create new account</p>
+        </div>
+        
+        <form id="registerForm" class="auth-form">
+            <div class="dp-upload">
+                <div class="dp-preview" id="dpPreview">
+                    <i class="fas fa-user"></i>
+                </div>
+                <input type="file" id="profilePic" accept="image/*" hidden>
+                <button type="button" class="btn btn-outline btn-sm" id="uploadPicBtn">
+                    <i class="fas fa-camera"></i> Add Photo
+                </button>
+            </div>
+            
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" id="registerName" class="input-field" placeholder="Full Name" required>
+            </div>
+            
+            <div class="input-group">
+                <i class="fas fa-phone"></i>
+                <input type="tel" id="registerMobile" class="input-field" placeholder="Mobile Number" required>
+            </div>
+            
+            <div class="input-group">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="registerEmail" class="input-field" placeholder="Email Address">
+            </div>
+            
+            <div class="input-group">
+                <i class="fas fa-map-marker-alt"></i>
+                <input type="text" id="registerLocation" class="input-field" placeholder="Your Location" readonly required>
+                <button type="button" class="btn btn-outline btn-sm" id="getLocationBtn">
+                    <i class="fas fa-crosshairs"></i> Live Location
+                </button>
+            </div>
+            
+            <div class="input-group">
+                <i class="fas fa-key"></i>
+                <input type="password" id="registerPassword" class="input-field" placeholder="Password" required>
+            </div>
+            
+            <div class="input-group">
+                <i class="fas fa-key"></i>
+                <input type="password" id="registerConfirm" class="input-field" placeholder="Confirm Password" required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-full">
+                <i class="fas fa-user-plus"></i> Register
+            </button>
+        </form>
+        
+        <div class="auth-footer">
+            <p class="text-gray">Already have account? <a href="#" id="showLogin" class="text-primary">Login</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loginCard = document.getElementById('loginCard');
+    const registerCard = document.getElementById('registerCard');
+    const showRegisterBtn = document.getElementById('showRegister');
+    const showLoginBtn = document.getElementById('showLogin');
+    
+    // Switch between login and register
+    showRegisterBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        loginCard.classList.remove('active');
+        registerCard.classList.add('active');
+    });
+    
+    showLoginBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        registerCard.classList.remove('active');
+        loginCard.classList.add('active');
+    });
+    
+    // Get live location
+    document.getElementById('getLocationBtn').addEventListener('click', function() {
+        const locationField = document.getElementById('registerLocation');
+        
+        if (!navigator.geolocation) {
+            showToast('Location not supported by browser', 'error');
+            locationField.removeAttribute('readonly');
+            return;
+        }
+        
+        locationField.value = 'Detecting location...';
+        
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                // Simulate getting address from coordinates
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+                
+                // In real app, use reverse geocoding API
+                // For demo, show success message
+                const addresses = [
+                    "123 MG Road, Bangalore",
+                    "45 Connaught Place, New Delhi", 
+                    "78 Marine Drive, Mumbai",
+                    "12 Park Street, Kolkata"
+                ];
+                
+                const randomAddress = addresses[Math.floor(Math.random() * addresses.length)];
+                locationField.value = randomAddress;
+                showToast('Location detected successfully');
+            },
+            function(error) {
+                locationField.value = '';
+                locationField.removeAttribute('readonly');
+                showToast('Please enter location manually', 'error');
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+    });
+    
+    // Profile picture upload
+    document.getElementById('uploadPicBtn').addEventListener('click', function() {
+        document.getElementById('profilePic').click();
+    });
+    
+    document.getElementById('profilePic').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const preview = document.getElementById('dpPreview');
+            preview.innerHTML = `<img src="${event.target.result}" alt="Profile" class="w-full h-full object-cover">`;
+        };
+        reader.readAsDataURL(file);
+    });
+    
+    // Login form submission
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const mobile = document.getElementById('loginMobile').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        
+        if (!mobile || !password) {
+            showToast('Please enter mobile and password', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({mobile, password})
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                window.location.href = '/dashboard';
+            } else {
+                if (data.redirect_to_register) {
+                    // Auto redirect to register for new user
+                    showToast('No account found. Please register.', 'error');
+                    loginCard.classList.remove('active');
+                    registerCard.classList.add('active');
+                    
+                    // Pre-fill mobile number in register form
+                    document.getElementById('registerMobile').value = data.mobile || mobile;
+                    document.getElementById('registerName').focus();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            }
+        } catch (error) {
+            showToast('Login failed. Please try again.', 'error');
+        }
+    });
+    
+    // Register form submission
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = {
+            name: document.getElementById('registerName').value.trim(),
+            mobile: document.getElementById('registerMobile').value.trim(),
+            email: document.getElementById('registerEmail').value.trim(),
+            location: document.getElementById('registerLocation').value.trim(),
+            password: document.getElementById('registerPassword').value,
+            confirm_password: document.getElementById('registerConfirm').value
+        };
+        
+        // Get profile picture
+        const dpImg = document.querySelector('#dpPreview img');
+        if (dpImg) {
+            formData.profile_pic = dpImg.src;
+        }
+        
+        // Validation
+        if (!formData.name || !formData.mobile || !formData.password || !formData.location) {
+            showToast('Please fill all required fields', 'error');
+            return;
+        }
+        
+        if (formData.password !== formData.confirm_password) {
+            showToast('Passwords do not match', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(formData)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                window.location.href = '/dashboard';
+            } else {
+                if (data.redirect_to_login) {
+                    // Auto redirect to login for existing user
+                    showToast('Account already exists. Please login.', 'error');
+                    registerCard.classList.remove('active');
+                    loginCard.classList.add('active');
+                    
+                    // Pre-fill mobile in login form
+                    document.getElementById('loginMobile').value = formData.mobile;
+                    document.getElementById('loginPassword').focus();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            }
+        } catch (error) {
+            showToast('Registration failed. Please try again.', 'error');
+        }
+    });
+});
+</script>
+
+<style>
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 1rem;
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+}
+
+.auth-card {
+    background: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    display: none;
+}
+
+.auth-card.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-header h1 {
+    font-size: 2rem;
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.dp-upload {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.dp-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--light);
+    margin: 0 auto 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 3px solid var(--primary);
+}
+
+.dp-preview i {
+    font-size: 2rem;
+    color: var(--gray);
+}
+
+.auth-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.auth-footer a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-footer a:hover {
+    text-decoration: underline;
+}
+</style>
+{% endblock %}
