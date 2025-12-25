@@ -1,0 +1,429 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - BiteBuddy{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ... (keep all previous dashboard styles) ... */
+    
+    /* Payment Options Styles */
+    .payment-option {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        border: 2px solid var(--border);
+        border-radius: 0.5rem;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .payment-option.selected {
+        border-color: var(--primary);
+        background: #f0f9ff;
+    }
+    
+    .payment-option.unavailable {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .payment-option.unavailable:hover {
+        border-color: var(--border);
+        background: white;
+    }
+    
+    .payment-icon {
+        font-size: 1.5rem;
+        margin-right: 1rem;
+        width: 2rem;
+        text-align: center;
+    }
+    
+    .payment-info {
+        flex: 1;
+    }
+    
+    .payment-name {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .payment-status {
+        font-size: 0.75rem;
+        color: var(--gray);
+    }
+    
+    .status-available {
+        color: var(--primary);
+    }
+    
+    .status-unavailable {
+        color: var(--accent);
+    }
+    
+    /* Location Button */
+    .location-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 0.5rem;
+        width: 100%;
+        justify-content: center;
+        cursor: pointer;
+        margin: 1rem 0;
+        font-size: 0.875rem;
+    }
+    
+    .location-btn:hover {
+        background: var(--primary-dark);
+    }
+    
+    .location-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    /* Order Confirmation */
+    .order-confirmation {
+        text-align: center;
+        padding: 2rem 1rem;
+    }
+    
+    .confirmation-icon {
+        font-size: 3rem;
+        color: var(--primary);
+        margin-bottom: 1rem;
+    }
+    
+    .confirmation-message {
+        font-size: 1.125rem;
+        margin-bottom: 0.5rem;
+        color: var(--dark);
+    }
+    
+    .order-id {
+        color: var(--primary);
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <!-- ... (keep header and main content same) ... -->
+
+    <!-- Checkout Modal - UPDATED -->
+    <div class="modal" id="checkoutModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="icon-sm fas fa-shopping-bag"></i> Checkout</h3>
+                <button class="btn btn-outline btn-sm" onclick="closeModal('checkoutModal')">
+                    <i class="icon-xs fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="checkoutStep1">
+                    <h4 class="mb-3">Delivery Location</h4>
+                    <div class="input-group mb-3">
+                        <i class="input-icon icon-xs fas fa-map-marker-alt"></i>
+                        <input type="text" id="deliveryAddress" class="input-field" 
+                               placeholder="Delivery address" readonly required>
+                    </div>
+                    
+                    <button class="location-btn" id="getDeliveryLocationBtn">
+                        <i class="fas fa-crosshairs"></i> Get Live Location
+                    </button>
+                    
+                    <div class="text-center mb-3">
+                        <small class="text-gray">Note: Live location is required for order confirmation</small>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button class="btn btn-outline flex-1" onclick="closeModal('checkoutModal')">
+                            Cancel
+                        </button>
+                        <button class="btn btn-primary flex-1" onclick="showPaymentOptions()" id="nextToPaymentBtn" disabled>
+                            Next: Payment
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="checkoutStep2" style="display: none;">
+                    <h4 class="mb-3">Payment Method</h4>
+                    
+                    <div class="payment-options">
+                        <!-- Cash on Delivery - Available -->
+                        <div class="payment-option selected" data-payment="Cash on Delivery" onclick="selectPayment(this)">
+                            <div class="payment-icon">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                            <div class="payment-info">
+                                <div class="payment-name">Cash on Delivery</div>
+                                <div class="payment-status status-available">Available</div>
+                            </div>
+                            <i class="fas fa-check-circle text-primary"></i>
+                        </div>
+                        
+                        <!-- Credit/Debit Card - Unavailable -->
+                        <div class="payment-option unavailable" data-payment="Credit Card" onclick="showPaymentUnavailable()">
+                            <div class="payment-icon">
+                                <i class="fas fa-credit-card"></i>
+                            </div>
+                            <div class="payment-info">
+                                <div class="payment-name">Credit/Debit Card</div>
+                                <div class="payment-status status-unavailable">Not available at the time</div>
+                            </div>
+                        </div>
+                        
+                        <!-- UPI - Unavailable -->
+                        <div class="payment-option unavailable" data-payment="UPI" onclick="showPaymentUnavailable()">
+                            <div class="payment-icon">
+                                <i class="fas fa-mobile-alt"></i>
+                            </div>
+                            <div class="payment-info">
+                                <div class="payment-name">UPI</div>
+                                <div class="payment-status status-unavailable">Not available at the time</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Net Banking - Unavailable -->
+                        <div class="payment-option unavailable" data-payment="Net Banking" onclick="showPaymentUnavailable()">
+                            <div class="payment-icon">
+                                <i class="fas fa-university"></i>
+                            </div>
+                            <div class="payment-info">
+                                <div class="payment-name">Net Banking</div>
+                                <div class="payment-status status-unavailable">Not available at the time</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="cart-total mb-3">
+                        <div class="total-row">
+                            <span>Total Amount</span>
+                            <span id="checkoutTotal">{{ format_currency(cart_total) }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button class="btn btn-outline flex-1" onclick="backToLocation()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        <button class="btn btn-primary flex-1" onclick="confirmOrder()" id="confirmOrderBtn">
+                            <i class="fas fa-check-circle"></i> Confirm Order
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="checkoutStep3" style="display: none;">
+                    <div class="order-confirmation">
+                        <div class="confirmation-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="confirmation-message">
+                            Order Placed Successfully!
+                        </div>
+                        <p class="text-gray mb-3">
+                            Your order has been confirmed and will be delivered soon.
+                        </p>
+                        <div class="order-details card">
+                            <div class="total-row">
+                                <span>Order ID:</span>
+                                <span class="order-id" id="confirmedOrderId"></span>
+                            </div>
+                            <div class="total-row">
+                                <span>Amount:</span>
+                                <span id="confirmedOrderAmount">{{ format_currency(cart_total) }}</span>
+                            </div>
+                            <div class="total-row">
+                                <span>Payment:</span>
+                                <span>Cash on Delivery</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary w-full mt-3" onclick="closeModal('checkoutModal'); location.reload();">
+                            <i class="fas fa-home"></i> Return to Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedPayment = 'Cash on Delivery';
+let deliveryAddress = '';
+let isLocationSet = false;
+
+function showCheckout() {
+    const cartItems = {{ cart_items|tojson|safe }};
+    if (!cartItems || cartItems.length === 0) {
+        showToast('Cart is empty', 'error');
+        return;
+    }
+    
+    // Reset checkout steps
+    document.getElementById('checkoutStep1').style.display = 'block';
+    document.getElementById('checkoutStep2').style.display = 'none';
+    document.getElementById('checkoutStep3').style.display = 'none';
+    
+    // Reset address
+    document.getElementById('deliveryAddress').value = '';
+    document.getElementById('nextToPaymentBtn').disabled = true;
+    isLocationSet = false;
+    deliveryAddress = '';
+    
+    document.getElementById('checkoutTotal').textContent = '₹' + {{ cart_total|tojson|safe }};
+    document.getElementById('checkoutModal').classList.add('show');
+}
+
+function getDeliveryLocation() {
+    const addressField = document.getElementById('deliveryAddress');
+    const locationBtn = document.getElementById('getDeliveryLocationBtn');
+    
+    if (!navigator.geolocation) {
+        showToast('Location not supported by browser', 'error');
+        return;
+    }
+    
+    locationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting Location...';
+    locationBtn.disabled = true;
+    addressField.value = 'Detecting your location...';
+    
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            // Simulate address from coordinates
+            const addresses = [
+                "123 MG Road, Bangalore, Karnataka 560001",
+                "45 Connaught Place, New Delhi, Delhi 110001",
+                "78 Marine Drive, Mumbai, Maharashtra 400020",
+                "12 Park Street, Kolkata, West Bengal 700016",
+                "34 Jubilee Hills, Hyderabad, Telangana 500033"
+            ];
+            
+            const randomAddress = addresses[Math.floor(Math.random() * addresses.length)];
+            addressField.value = randomAddress;
+            deliveryAddress = randomAddress;
+            isLocationSet = true;
+            
+            locationBtn.innerHTML = '<i class="fas fa-check-circle"></i> Location Set';
+            locationBtn.style.background = '#10b981';
+            document.getElementById('nextToPaymentBtn').disabled = false;
+            
+            showToast('Location detected successfully');
+        },
+        function(error) {
+            addressField.value = '';
+            locationBtn.innerHTML = '<i class="fas fa-crosshairs"></i> Get Live Location';
+            locationBtn.disabled = false;
+            showToast('Failed to get location. Please try again.', 'error');
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+        }
+    );
+}
+
+function showPaymentOptions() {
+    if (!isLocationSet || !deliveryAddress) {
+        showToast('Please get your live location first', 'error');
+        return;
+    }
+    
+    document.getElementById('checkoutStep1').style.display = 'none';
+    document.getElementById('checkoutStep2').style.display = 'block';
+}
+
+function backToLocation() {
+    document.getElementById('checkoutStep2').style.display = 'none';
+    document.getElementById('checkoutStep1').style.display = 'block';
+}
+
+function selectPayment(element) {
+    // Remove selected class from all payment options
+    document.querySelectorAll('.payment-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    
+    // Add selected class to clicked option
+    element.classList.add('selected');
+    selectedPayment = element.dataset.payment;
+}
+
+function showPaymentUnavailable() {
+    showToast('This payment method is not available at the moment', 'error');
+}
+
+async function confirmOrder() {
+    if (!deliveryAddress) {
+        showToast('Please set delivery location first', 'error');
+        backToLocation();
+        return;
+    }
+    
+    if (selectedPayment !== 'Cash on Delivery') {
+        showToast('Only Cash on Delivery is available', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/order', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                address: deliveryAddress,
+                payment_method: selectedPayment
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Show confirmation step
+            document.getElementById('checkoutStep2').style.display = 'none';
+            document.getElementById('checkoutStep3').style.display = 'block';
+            
+            document.getElementById('confirmedOrderId').textContent = '#' + data.order_id;
+            document.getElementById('confirmedOrderAmount').textContent = '₹' + {{ cart_total|tojson|safe }};
+        } else {
+            if (data.message.includes('location')) {
+                showToast('Please use live location for delivery', 'error');
+                backToLocation();
+            } else if (data.message.includes('Cash on Delivery')) {
+                showToast('Only Cash on Delivery available', 'error');
+            } else {
+                showToast(data.message || 'Order failed', 'error');
+            }
+        }
+    } catch (error) {
+        showToast('Order failed. Please try again.', 'error');
+    }
+}
+
+// Initialize event listeners when modal opens
+document.getElementById('checkoutModal').addEventListener('shown', function() {
+    document.getElementById('getDeliveryLocationBtn').addEventListener('click', getDeliveryLocation);
+});
+
+// Add location button event listener
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('getDeliveryLocationBtn').addEventListener('click', getDeliveryLocation);
+    
+    // Auto-select Cash on Delivery
+    selectPayment(document.querySelector('[data-payment="Cash on Delivery"]'));
+});
+</script>
+
+<!-- Jinja filter for currency -->
+{% macro format_currency(amount) %}
+₹{{ "%.0f"|format(amount) }}
+{% endmacro %}
+{% endmacro %}
+{% endblock %}
